@@ -39,6 +39,14 @@ def package_bytes(version="0.4.0", target="windows-x64", extra=None):
             entry.external_attr = (stat.S_IFREG | 0o755) << 16
             archive.writestr(entry, contents)
         for entry, contents in extra or []:
+            if isinstance(entry, str):
+                # ZipInfo normalizes backslashes on Windows. Keep attack bytes
+                # intact so the extractor, rather than the fixture writer, sees them.
+                raw_name = entry
+                entry = zipfile.ZipInfo("fixture")
+                entry.filename = raw_name
+                entry.orig_filename = raw_name
+                entry.external_attr = (stat.S_IFREG | 0o644) << 16
             archive.writestr(entry, contents)
     return output.getvalue()
 
@@ -64,10 +72,11 @@ class RuntimeTests(unittest.TestCase):
                 mock.patch.object(runtime, "call_cli", return_value=response):
             return runtime.execute(options)
 
-    def extract(self, data, target="windows-x64"):
-        archive = self.root / "release.zip"
+    def extract(self, data, target="windows-x64", root=None):
+        root = root or self.root
+        archive = root / "release.zip"
         archive.write_bytes(data)
-        destination = self.root / "package"
+        destination = root / "package"
         runtime.extract_package(archive, destination, "gog-achievements-0.4.0-" + target, target)
         return destination
 
@@ -123,11 +132,12 @@ class RuntimeTests(unittest.TestCase):
         for path in [root + "../outside", "/absolute", root + "licenses/../../outside", root + "licenses\\outside",
                      root + "licenses/C:/file", root + "licenses/CON.txt", root + "licenses/file. ",
                      root + "licenses//file", root + "licenses/\x00file", root + "unknown"]:
-            with self.subTest(path=path):
+            with self.subTest(path=path), tempfile.TemporaryDirectory(dir=str(self.root)) as temporary:
+                case = Path(temporary).resolve()
                 with self.assertRaises(runtime.RuntimeErrorDetail):
-                    self.extract(package_bytes(extra=[(path, b"bad")]))
-                self.assertFalse((self.root / "package").exists())
-                self.assertFalse((self.root / "outside").exists())
+                    self.extract(package_bytes(extra=[(path, b"bad")]), root=case)
+                self.assertFalse((case / "package").exists())
+                self.assertFalse((case / "outside").exists())
 
     def test_archive_links_and_case_collisions_are_rejected(self):
         root = "gog-achievements-0.4.0-windows-x64/"
