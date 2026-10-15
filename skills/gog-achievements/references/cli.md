@@ -1,6 +1,6 @@
 # CLI workflow reference
 
-Use the approved CLI's `--help --json` for the installed contract. The source documentation is [CLI reference at v0.4.0](https://github.com/opista/gog-achievements-cli/blob/v0.4.0/docs/cli-reference.md). All calls below also need `--json`.
+Use the approved CLI's `--help --json` for the installed contract. The source documentation is [CLI reference at v0.4.0](https://github.com/opista/gog-achievements-cli/blob/v0.4.0/docs/cli-reference.md). All calls below also need `--json`. These command and result names are technical reference terms; use “ready to unlock” for a successful dry run in normal chat, and reserve “unlocked” for a confirmed write.
 
 ## Responses and selection
 
@@ -60,4 +60,4 @@ Inspect `requested_unlocked_at` and `actual_unlocked_at` per result. The CLI che
 
 Exit codes: 0 command completed; 2 input invalid; 3 login required/rejected; 4 network/API failure; 5 account, ownership, game, or lock conflict; 6 incomplete apply; 7 native credential/browser/process failure. For exit 6, inspect the report, read live state, and await review before retrying. A retry cannot correct a date on an already unlocked entry.
 
-Keep the game closed during apply. GOG has no atomic compare-and-set operation. Do not run concurrent apply commands or remove another process's queue lock. Do not reset/relock achievements or alter dates on existing unlocks.
+Keep the game closed during apply to avoid conflicting updates from its next GOG sync. GOG has no atomic compare-and-set operation. Explain that practical reason when asking the user to save and close it. Do not require a specific reply word or another confirmation if closure is already known; a reliable read-only process check can establish that the game has stopped. Do not run concurrent apply commands or remove another process's queue lock. Do not reset/relock achievements or alter dates on existing unlocks.

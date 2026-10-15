@@ -33,7 +33,9 @@ Examples:
 
 The skill uses information already present in the conversation. It asks only for unresolved game, achievement, or date choices. An unlock request does not require a claim or proof that the user earned the achievement. If no date is given, it offers **Now** as the default in the selection or review prompt. Listing achievements does not authorize an unlock.
 
-The skill runs `doctor` and `auth status`, uses native sign-in if needed, shows a queue and dry run, and applies the exact selection within the user's authorization. Existing unlocks stay unchanged. Partial or unconfirmed results stop the flow for review.
+The skill checks local support and sign-in, uses native sign-in if needed, checks the requested changes, and shows the unlock details before it changes GOG. It says an achievement is “ready to unlock” after the checks, and “unlocked” only after confirmation from GOG. Existing unlocks stay unchanged. Partial or unconfirmed results stop the flow for review.
+
+For a running game, it explains the next step directly: “Save and close Cyberpunk 2077 first so its next GOG sync does not conflict with this change.” It accepts a normal reply or a reliable process check; it does not require the word “closed.” Routine messages explain the practical reason. Host instructions may still require a source citation for an actual confirmation or block, and take precedence over the skill's wording guidance.
 
 ## Runtime and updates
 
