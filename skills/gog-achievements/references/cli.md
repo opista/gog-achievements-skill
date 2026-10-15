@@ -11,13 +11,20 @@ Success: `{ "ok": true, "data": ... }`. Failure: `{ "ok": false, "error": { "cod
 - `auth status`: inspect `authenticated`, `expired`, and `user_id`. A stored expired access token can refresh on the next GOG command. Native credential permission errors can require explicit local sign-in.
 - `auth login`: human completes the native window; successful JSON reports `authenticated: true`. Manual `--no-open` can return exit 0 with `authenticated: false` and `action_required`; that is not a completed sign-in. Do not pass callback URLs or codes through chat or command arguments.
 
-Selection display, using only actual returned entries:
+## Achievement-list display
 
-| Choice | Achievement | Requirement | State |
+Use this format for all achievement lists, including read-only follow-ups, unless the user requests another format. Populate rows only from returned entries:
+
+**Game title — 3 locked achievements: 2 visible, 1 hidden.**
+
+| # | Achievement | Requirement | Status |
 | --- | --- | --- | --- |
-| 1 | Returned name | Short returned description | Locked |
+| 1 | **Returned name** | Short returned description | Locked |
+| 2 | **Another returned name** | Short returned description | Locked |
 
-Keep the mapping from choice to the actual string ID. Display a useful subset and offer more. A description can identify candidates; use the user's request to decide whether they want a list or an unlock. No statement or proof that they earned the achievement is required. Apply only within their authorization for the reviewed selection and dates.
+**1 hidden achievement** is omitted to avoid spoilers. Offer to show its name and requirement. When the user requests it, show it in the same table format with the next choice number. An explicit request for one hidden entry does not permit revealing all hidden entries.
+
+Counts must match the returned, filtered entries and any withheld hidden entries. For pages, state the range and total, and continue the numbering; do not reduce an ordinary list to a few sample rows. Keep the mapping from choice to the actual string ID. A description can identify candidates; use the user's request to decide whether they want a list or an unlock. No statement or proof that they earned the achievement is required. Apply only within their authorization for the reviewed selection and dates.
 
 ## Queue commands
 
