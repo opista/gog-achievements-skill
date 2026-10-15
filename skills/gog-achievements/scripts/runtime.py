@@ -171,6 +171,9 @@ def probe(executable, lock, expected=None):
                 and flags.issubset(by_name[name]["flags"])
                 for name, flags in REQUIRED_COMMANDS.items()),
             "CLI_CONTRACT_INVALID", "The CLI is missing required JSON commands or options.")
+    if version_key(version) >= (0, 5, 0):
+        require(all("action" in by_name[name]["flags"] for name in ("queue create", "queue add")),
+                "CLI_CONTRACT_INVALID", "The CLI is missing required mixed-action queue options.")
     require("--json" in data.get("common_flags", []), "CLI_CONTRACT_INVALID", "The CLI does not declare JSON output.")
     return version
 

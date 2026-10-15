@@ -1,13 +1,19 @@
 {
   "schema_version": 1,
   "repository": "opista/gog-achievements-cli",
-  "preferred_version": "0.4.0",
+  "preferred_version": "0.5.0",
   "releases": {
     "0.4.0": {
       "macos-arm64": "179b1785a904a3e64c44621970d91aa510801f7585b8ffb08e430440d8cbbc16",
       "macos-x64": "967786f996a496d9b13c401d091662d2adacb4833277626efac3d55500e622f9",
       "windows-arm64": "86ce8735525d68a147409233d51bf1df408cca434246a9946d70cd2e5728fbf9",
       "windows-x64": "f6b8e73a7b19875c2422ffaaed4071bc5901599908b2c389bf9105a7ee9866b1"
+    },
+    "0.5.0": {
+      "macos-arm64": "8c4fcae0e651091950c9db62a3be8ed7b14934ddfdd249aa6a0c6f5137b4467a",
+      "macos-x64": "89c9ea478ded7155664c3e9f3abfd3f1effdb34ebaaaf147d8a597c0ee92bd82",
+      "windows-arm64": "037508e74a046db9c616c06ceab5953f9e0d6e0fed239843acccdc5057e30438",
+      "windows-x64": "0e2ac22bf47cc4255ea3204cca05dc6b7184da3fd8e5de09a1960c092db97cdd"
     }
   }
 }

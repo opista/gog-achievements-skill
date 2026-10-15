@@ -18,11 +18,17 @@ ACHIEVEMENTS = [
 COMMANDS = {
     "doctor": [], "auth status": [], "auth login": [],
     "games list": ["search"], "achievements list": ["game"],
-    "queue create": ["file", "game", "achievement", "unlocked-at"],
-    "queue add": ["file", "achievement", "unlocked-at"],
+    "queue create": ["file", "game", "achievement", "unlocked-at", "action"],
+    "queue add": ["file", "achievement", "unlocked-at", "action"],
     "queue set-date": ["file", "achievement", "unlocked-at"],
+    "queue remove": ["file", "achievement"],
     "queue show": ["file"], "queue apply": ["file", "yes", "dry-run"], "self update": ["check"],
 }
+
+
+def failure(code, message, exit_code=2):
+    print(json.dumps({"ok": False, "error": {"code": code, "message": message}}))
+    return exit_code
 
 
 def main():
@@ -51,16 +57,21 @@ def main():
     achievements = [dict(item, **state.get(item["id"], {})) for item in ACHIEVEMENTS]
     by_id = {item["id"]: item for item in achievements}
     value = lambda key: flags[key][0]
+    version = os.environ.get("GOG_SKILL_FIXTURE_VERSION", "0.5.0")
+    if version == "0.4.0" and "action" in flags:
+        return failure("INVALID_ARGUMENT", "This fixture version does not support --action.")
     if "help" in flags:
-        data = {"name": "gog-achievements", "version": "0.4.0", "common_flags": ["--json"],
-                "commands": [{"command": name, "flags": options} for name, options in COMMANDS.items()]}
+        data = {"name": "gog-achievements", "version": version, "common_flags": ["--json"],
+                "commands": [{"command": name,
+                              "flags": [option for option in options if version != "0.4.0" or option != "action"]}
+                             for name, options in COMMANDS.items()]}
     elif command == "doctor":
         data = {"supported": True, "platform": "darwin", "architecture": "arm64", "node": "24.19.0",
                 "credentials_available": True, "login": {"authenticated": True, "user_id": ACCOUNT}}
     elif command == "auth status":
         data = {"authenticated": True, "expired": False, "user_id": ACCOUNT}
     elif command == "self update":
-        data = {"current_version": "0.4.0", "latest_version": "0.4.0", "update_available": False, "can_update": False}
+        data = {"current_version": version, "latest_version": version, "update_available": False, "can_update": False}
     elif command == "games list":
         games = [{"id": GAME["id"], "title": GAME["title"]}]
         if "search" in flags:
@@ -69,22 +80,42 @@ def main():
     elif command == "achievements list":
         assert value("game") == GAME["id"]
         data = {"user_id": ACCOUNT, "game": GAME, "count": len(achievements), "achievements": achievements}
-    elif command in {"queue create", "queue add", "queue set-date"}:
+    elif command in {"queue create", "queue add", "queue set-date", "queue remove"}:
         path = Path(value("file"))
         queue = ({"schema_version": 1, "user_id": ACCOUNT, "game": GAME, "items": []}
                  if command == "queue create" else json.loads(path.read_text(encoding="utf-8")))
         assert command != "queue create" or not path.exists()
-        assert value("unlocked-at")
+        if command == "queue create":
+            assert value("game") == GAME["id"]
+        action = value("action") if "action" in flags else "unlock"
+        if action not in {"unlock", "lock"}:
+            return failure("INVALID_ARGUMENT", "Unknown achievement action.")
+        if action == "lock" and "unlocked-at" in flags:
+            return failure("INVALID_ARGUMENT", "Lock requests have no requested date.")
         for identifier in flags.get("achievement", []):
             assert identifier in by_id
-            if command == "queue set-date":
+            if command == "queue remove":
+                queue["items"] = [item for item in queue["items"] if item["achievement_id"] != identifier]
+            elif command == "queue set-date":
                 for item in queue["items"]:
                     if item["achievement_id"] == identifier:
+                        if item.get("action") == "lock":
+                            return failure("INVALID_ARGUMENT", "Lock requests have no requested date.")
                         item["unlocked_at"] = value("unlocked-at")
             else:
                 achievement = by_id[identifier]
-                queue["items"].append({"achievement_id": identifier, "key": achievement["key"],
-                                       "name": achievement["name"], "unlocked_at": value("unlocked-at")})
+                if any(item["achievement_id"] == identifier for item in queue["items"]):
+                    return failure("INVALID_ARGUMENT", "An achievement can appear only once.")
+                item = {"achievement_id": identifier, "key": achievement["key"], "name": achievement["name"]}
+                if action == "lock":
+                    if not achievement["unlocked"]:
+                        return failure("ACHIEVEMENT_ALREADY_LOCKED", "Choose an unlocked achievement.", 5)
+                    item.update(action="lock", previous_unlocked_at=achievement["unlocked_at"])
+                else:
+                    item["unlocked_at"] = value("unlocked-at")
+                    if "action" in flags:
+                        item["action"] = "unlock"
+                queue["items"].append(item)
         queue["updated_at"] = datetime.now(timezone.utc).isoformat()
         queue.setdefault("created_at", queue["updated_at"])
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -96,14 +127,36 @@ def main():
         queue = json.loads(Path(value("file")).read_text(encoding="utf-8"))
         dry_run = "yes" not in flags
         partial = not dry_run and os.environ.get("GOG_SKILL_FIXTURE_PARTIAL") == "1"
+        for item in queue["items"]:
+            current = by_id[item["achievement_id"]]
+            if (item.get("action") == "lock" and current["unlocked"]
+                    and current["unlocked_at"] != item["previous_unlocked_at"]):
+                return failure("ACHIEVEMENT_CHANGED", "The original unlock date changed.", 5)
         results = []
         for index, item in enumerate(queue["items"]):
-            status = "pending" if dry_run else ("unconfirmed" if partial and index == 0 else "not_attempted" if partial else "restored")
-            results.append({"achievement_id": item["achievement_id"], "name": item["name"], "status": status,
-                            "requested_unlocked_at": item["unlocked_at"], "previous_unlocked_at": None,
-                            "actual_unlocked_at": item["unlocked_at"] if status == "restored" else None})
-            if status == "restored":
-                state[item["achievement_id"]] = {"unlocked": True, "unlocked_at": item["unlocked_at"]}
+            action = item.get("action", "unlock")
+            current = by_id[item["achievement_id"]]
+            requested = item.get("unlocked_at")
+            skipped = current["unlocked"] == (action == "unlock")
+            if skipped:
+                status = "skipped_already_unlocked" if action == "unlock" else "skipped_already_locked"
+            elif dry_run:
+                status = "pending"
+            elif partial:
+                status = "unconfirmed" if index == 0 else "not_attempted"
+            else:
+                status = "locked" if action == "lock" else "restored"
+            actual = (requested if status == "restored" else None if status in {"locked", "unconfirmed", "not_attempted"}
+                      else current["unlocked_at"])
+            result = {"achievement_id": item["achievement_id"], "name": item["name"], "status": status,
+                      "requested_unlocked_at": requested,
+                      "previous_unlocked_at": item.get("previous_unlocked_at", current["unlocked_at"]),
+                      "actual_unlocked_at": actual}
+            if "action" in item:
+                result["action"] = action
+            results.append(result)
+            if status in {"restored", "locked"}:
+                state[item["achievement_id"]] = {"unlocked": status == "restored", "unlocked_at": actual}
         if not dry_run:
             state_path.write_text(json.dumps(state), encoding="utf-8")
         data = {"dry_run": dry_run, "complete": not partial, "user_id": ACCOUNT, "game": GAME, "results": results}
