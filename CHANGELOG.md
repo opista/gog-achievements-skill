@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/opista/gog-achievements-skill/compare/v0.2.0...v0.2.1) (2026-10-15)
+
+
+### Fixed
+
+* check draft releases within the publisher job ([0f0115e](https://github.com/opista/gog-achievements-skill/commit/0f0115ef4bcb04f0a014a2251f501dab8263a6a2))
+
 ## [0.2.0](https://github.com/opista/gog-achievements-skill/compare/v0.1.3...v0.2.0) (2026-10-15)
 
 
