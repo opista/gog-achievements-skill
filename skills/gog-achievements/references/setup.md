@@ -32,6 +32,8 @@ The skill-managed runtime stays outside the installed skill. A read-only skill d
 
 The checked-in `cli-releases.json` is the approval list, including exact archive hashes for all supported targets. A version is not approved merely because it has a compatible-looking number. The helper reports newer upstream versions without downloading them unless the version is approved. Install or update the skill to obtain a new approval list.
 
+The preferred CLI is v0.5.0, with lock and mixed-action queue support. Existing approved v0.4.0 installations remain usable for reads and unlocks. Updating the skill does not itself update an active CLI when automatic installation is off. If a requested lock needs an update, explain the requirement and use `update` within the user's update authorization before preparing its queue. For an external CLI, use its original update method. Never pass lock options to v0.4.0.
+
 Automatic installation is off until the user asks to enable it. It runs only during `ensure`, only for a managed copy, and before the agent prepares its review. There are no background tasks. The helper downloads a pinned version directly, instead of invoking `self update --yes`, because that CLI command can select a different latest release between check and installation. External installations must use their own update method.
 
 Old managed versions stay in place. To roll back, close any running CLI operation, choose an approved older package, then pass its absolute executable path with `--cli`. Review the resulting CLI version before reusing a queue. Do not delete queues or the GOG credential store to repair a runtime problem.

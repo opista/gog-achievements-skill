@@ -1,6 +1,6 @@
 # GOG Achievements Skill
 
-Find and unlock GOG achievements through a conversation with a local AI agent. This skill uses the [GOG Achievements CLI](https://github.com/opista/gog-achievements-cli). It can resolve game and achievement descriptions, show choices, collect unlock dates, and prepare a queue for review.
+Find, unlock, and re-lock selected GOG achievements through a conversation with a local AI agent. This skill uses the [GOG Achievements CLI](https://github.com/opista/gog-achievements-cli). It can resolve game and achievement descriptions, show choices, collect unlock dates, and prepare unlocks, locks, or a mixed queue for review.
 
 ## Install
 
@@ -48,12 +48,16 @@ Examples:
 - “Show my missing GOG achievements for Cyberpunk 2077.”
 - “Help me find the story ending achievement.”
 - “Unlock these two achievements. Use 12 October 2026 at 19:30 in Europe/London.”
+- “Lock First Steps again. Leave my other achievements unchanged.”
+- “Unlock these two achievements at that date, and lock this other one.”
 
-The skill uses information already present in the conversation. It asks only for unresolved game, achievement, or date choices. An unlock request does not require a claim or proof that the user earned the achievement. If no date is given, it offers **Now** as the default in the selection or review prompt. Listing achievements does not authorize an unlock.
+The skill uses information already present in the conversation. It asks only for unresolved game, achievement, action, or unlock-date choices. An unlock request does not require a claim or proof that the user earned the achievement. If no unlock date is given, it offers **Now** as the default in the selection or review prompt. Listing achievements does not authorize a write.
 
 Achievement lists use numbered tables with names, requirements, and status, including follow-up requests such as “What else is locked?” Hidden entries stay in a separate count until requested. Large lists use labeled pages with stable choice numbers. An explicit request for another format takes precedence.
 
-The skill checks local support and sign-in, uses native sign-in if needed, checks the requested changes, and shows the unlock details before it changes GOG. It says an achievement is “ready to unlock” after the checks, and “unlocked” only after confirmation from GOG. Existing unlocks stay unchanged. Partial or unconfirmed results stop the flow for review.
+The skill checks local support and sign-in, uses native sign-in if needed, checks the requested changes, and shows each action before it changes GOG. It says an achievement is “ready to unlock” or “ready to lock” after the checks, and reports success only after confirmation from GOG. Existing unlocks stay unchanged unless you explicitly select them for locking. Partial or unconfirmed results stop the flow for review.
+
+Locks need CLI v0.5.0 and remove the current unlock date. The review shows that original date, which the CLI saves in the queue and result. If it changes before apply, the request stops for a new review. Locks have no requested date. An unlock request never authorizes a lock, and the skill does not use a lock/unlock cycle to edit an existing unlock date. Mixed queues apply in order; earlier confirmed changes remain if a later item fails. Statistics and account-wide resets are not supported.
 
 For a running game, it explains the next step directly: “Save and close Cyberpunk 2077 first so its next GOG sync does not conflict with this change.” It accepts a normal reply or a reliable process check; it does not require the word “closed.” Routine messages explain the practical reason. Host instructions may still require a source citation for an actual confirmation or block, and take precedence over the skill's wording guidance.
 
@@ -74,9 +78,11 @@ The helper returns JSON with the absolute CLI path, version, queue directory, an
 
 Runtime data goes to `~/Library/Application Support/GogAchievementsSkill` on Mac, or `%LOCALAPPDATA%\GogAchievementsSkill` on Windows. `--data-dir PATH` can select another private directory outside the installed skill. No downloaded executables, credentials, or queues belong in this repository.
 
-The initial approved release is **CLI v0.4.0**. Each approved release has four pinned SHA-256 archive hashes. Installation checks the hash, archive paths, package metadata, and executable JSON contract before activation. Previous versions stay available for rollback. These hashes check the downloaded bytes; they are not a publisher signature.
+The preferred approved release is **CLI v0.5.0**. CLI v0.4.0 remains approved for reads and unlocks. Each approved release has four pinned SHA-256 archive hashes. Installation checks the hash, archive paths, package metadata, and executable JSON contract before activation; v0.5.0 must declare action support on both queue commands. Previous versions stay available for rollback. These hashes check the downloaded bytes; they are not a publisher signature.
 
 `ensure` checks public update metadata at most once per 24 hours while the skill is used. Offline mode performs no checks or downloads. A failed update check does not prevent use of an available approved CLI. Automatic installation is off by default and applies only to the skill-managed copy and a release approved in `cli-releases.json`. New upstream versions need validation and a skill update before automatic installation is allowed. External and Electron-bundled CLIs are never updated by this helper. There are no background jobs.
+
+An existing v0.4.0 managed copy stays active until you request `update` or enable automatic installation. Update it before a lock request; the skill checks for the required action options and never sends lock flags to the older CLI.
 
 Read [setup and recovery](skills/gog-achievements/references/setup.md) for errors and rollback. The [CLI workflow reference](skills/gog-achievements/references/cli.md) covers command shapes, dates, and partial results.
 

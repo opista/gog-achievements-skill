@@ -1,6 +1,6 @@
 interface:
   display_name: "GOG Achievements"
-  short_description: "Find and unlock GOG achievements"
-  default_prompt: "Use $gog-achievements to find and unlock GOG achievements."
+  short_description: "Find, unlock, and re-lock GOG achievements"
+  default_prompt: "Use $gog-achievements to find GOG achievements and review selected unlock or lock requests."
 policy:
   allow_implicit_invocation: true

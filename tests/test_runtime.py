@@ -19,7 +19,10 @@ SPEC.loader.exec_module(runtime)
 
 def help_data(version="0.4.0"):
     return {"name": "gog-achievements", "version": version, "common_flags": ["--json"],
-            "commands": [{"command": name, "flags": sorted(flags)} for name, flags in runtime.REQUIRED_COMMANDS.items()]}
+            "commands": [{"command": name,
+                          "flags": sorted(flags | ({"action"} if runtime.version_key(version) >= (0, 5, 0)
+                                                   and name in {"queue create", "queue add"} else set()))}
+                         for name, flags in runtime.REQUIRED_COMMANDS.items()]}
 
 
 def package_bytes(version="0.4.0", target="windows-x64", extra=None):
@@ -81,7 +84,9 @@ class RuntimeTests(unittest.TestCase):
         return destination
 
     def test_approved_release_covers_exactly_four_targets(self):
-        self.assertEqual(set(self.lock["releases"]["0.4.0"]), runtime.TARGETS)
+        for version, hashes in self.lock["releases"].items():
+            with self.subTest(version=version):
+                self.assertEqual(set(hashes), runtime.TARGETS)
 
     def test_probe_checks_capabilities_not_only_version(self):
         data = help_data()
@@ -91,10 +96,28 @@ class RuntimeTests(unittest.TestCase):
                 runtime.probe(Path("fixture"), self.lock)
 
     def test_probe_rejects_unapproved_version(self):
-        with mock.patch.object(runtime, "call_cli", return_value=help_data("0.5.0")):
+        with mock.patch.object(runtime, "call_cli", return_value=help_data("9.9.9")):
             with self.assertRaises(runtime.RuntimeErrorDetail) as caught:
                 runtime.probe(Path("fixture"), self.lock)
         self.assertEqual(caught.exception.code, "CLI_VERSION_UNAPPROVED")
+
+    def test_probe_accepts_legacy_unlock_only_cli(self):
+        with mock.patch.object(runtime, "call_cli", return_value=help_data("0.4.0")):
+            self.assertEqual(runtime.probe(Path("fixture"), self.lock), "0.4.0")
+
+    def test_probe_accepts_mixed_action_cli(self):
+        with mock.patch.object(runtime, "call_cli", return_value=help_data("0.5.0")):
+            self.assertEqual(runtime.probe(Path("fixture"), self.lock), "0.5.0")
+
+    def test_probe_requires_action_for_both_queue_commands(self):
+        for command in ("queue create", "queue add"):
+            with self.subTest(command=command):
+                data = help_data("0.5.0")
+                next(item for item in data["commands"] if item["command"] == command)["flags"].remove("action")
+                with mock.patch.object(runtime, "call_cli", return_value=data):
+                    with self.assertRaises(runtime.RuntimeErrorDetail) as caught:
+                        runtime.probe(Path("fixture"), self.lock)
+                self.assertEqual(caught.exception.code, "CLI_CONTRACT_INVALID")
 
     def test_process_arguments_are_separate_and_never_use_shell(self):
         response = subprocess.CompletedProcess([], 0, json.dumps({"ok": True, "data": help_data()}), "")
@@ -202,8 +225,20 @@ class RuntimeTests(unittest.TestCase):
     def test_automatic_update_defaults_off(self):
         result = self.execute(self.options(), latest="0.5.0")
         self.assertFalse(result["automatic_updates"])
-        self.assertTrue(result["update"]["skill_update_required"])
+        self.assertTrue(result["update"]["update_available"])
+        self.assertFalse(result["update"]["skill_update_required"])
         self.assertFalse(result["updated"])
+
+    def test_explicit_update_activates_approved_mixed_action_cli(self):
+        executable = self.root / "runtime/0.5.0/windows-x64/gog-achievements.exe"
+        with mock.patch.object(runtime, "install", return_value=executable) as install:
+            result = self.execute(self.options("update"), latest="0.5.0")
+        install.assert_called_once_with(self.root, self.lock, "0.5.0", "windows-x64")
+        self.assertTrue(result["updated"])
+        self.assertEqual(result["version"], "0.5.0")
+        self.assertEqual(result["previous_version"], "0.4.0")
+        self.assertFalse(result["automatic_updates"])
+        self.assertEqual(runtime.read_json(self.root / "active.json")["version"], "0.5.0")
 
     def test_daily_check_cache_is_used_then_expires(self):
         with mock.patch.object(runtime, "call_cli", return_value={"current_version": "0.4.0", "latest_version": "0.4.0"}) as call, \
@@ -251,7 +286,7 @@ class RuntimeTests(unittest.TestCase):
     def test_auto_update_rejects_new_unapproved_version(self):
         runtime.write_json(self.root / "preferences.json", {"automatic_updates": True})
         with mock.patch.object(runtime, "install") as install:
-            result = self.execute(self.options(), latest="0.5.0")
+            result = self.execute(self.options(), latest="0.6.0")
         install.assert_not_called()
         self.assertEqual(result["version"], "0.4.0")
         self.assertEqual(result["update"]["code"], "UPDATE_NOT_APPROVED")
