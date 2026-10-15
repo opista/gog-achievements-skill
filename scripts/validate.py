@@ -43,9 +43,13 @@ def validate():
     lock = module.release_lock()
     if metadata["metadata"]["cli-release"] != lock["preferred_version"]:
         raise ValueError("Skill metadata and approved CLI release must agree.")
+    version = (ROOT / "version.txt").read_text(encoding="utf-8").strip()
+    manifest = json.loads((ROOT / ".release-please-manifest.json").read_text(encoding="utf-8"))
+    if metadata["metadata"]["version"] != version or manifest.get(".") != version:
+        raise ValueError("The skill, version file, and Release Please manifest must agree.")
     if (SKILL / "LICENSE.txt").read_bytes() != (ROOT / "LICENSE").read_bytes():
         raise ValueError("The portable package must include the repository license.")
-    return {"skill": metadata["name"], "preferred_cli": lock["preferred_version"], "valid": True}
+    return {"skill": metadata["name"], "version": version, "preferred_cli": lock["preferred_version"], "valid": True}
 
 
 if __name__ == "__main__":

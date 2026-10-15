@@ -1,0 +1,109 @@
+name: Release
+
+"on":
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing draft release tag to build or retry
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      commit: ${{ steps.pin.outputs.commit }}
+      release-id: ${{ steps.pin.outputs.release-id }}
+    steps:
+      - name: Pin the existing draft release tag
+        id: pin
+        uses: actions/github-script@v8
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        with:
+          script: |
+            const tag = process.env.RELEASE_TAG;
+            if (!/^v\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(tag)) {
+              throw new Error('Use an existing version tag, such as v0.1.3.');
+            }
+            const releases = await github.paginate(github.rest.repos.listReleases, { ...context.repo, per_page: 100 });
+            const matches = releases.filter((release) => release.tag_name === tag);
+            if (matches.length !== 1) throw new Error('Use an existing draft release tag.');
+            const release = matches[0];
+            if (!Number.isSafeInteger(release.id) || release.id <= 0 || release.draft !== true) {
+              throw new Error('Only valid draft releases can be built for publication.');
+            }
+            const { data: commit } = await github.rest.repos.getCommit({ ...context.repo, ref: 'refs/tags/' + tag });
+            core.setOutput('commit', commit.sha);
+            core.setOutput('release-id', release.id);
+
+  build:
+    needs: prepare
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.prepare.outputs.commit }}
+      release-tag: ${{ inputs.tag }}
+
+  publish:
+    needs: [prepare, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - uses: actions/download-artifact@v7
+        with:
+          name: distribution-Linux
+          path: release-assets
+      - name: Verify the release version, archive, and checksum
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: python scripts/release.py verify --tag "$RELEASE_TAG" --directory release-assets
+      - name: Confirm the draft release and pinned tag
+        uses: actions/github-script@v8
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_COMMIT: ${{ needs.prepare.outputs.commit }}
+          RELEASE_ID: ${{ needs.prepare.outputs.release-id }}
+        with:
+          script: |
+            const releaseId = Number(process.env.RELEASE_ID);
+            if (!Number.isSafeInteger(releaseId) || releaseId <= 0) throw new Error('Invalid pinned release ID.');
+            const { data: release } = await github.rest.repos.getRelease({ ...context.repo, release_id: releaseId });
+            if (release.id !== releaseId || release.tag_name !== process.env.RELEASE_TAG || release.draft !== true) {
+              throw new Error('The draft release changed during this build.');
+            }
+            const { data: commit } = await github.rest.repos.getCommit({ ...context.repo, ref: 'refs/tags/' + process.env.RELEASE_TAG });
+            if (commit.sha !== process.env.RELEASE_COMMIT) throw new Error('The release tag moved during this build.');
+      - name: Attach the verified ZIP and checksum, then publish
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release upload "$RELEASE_TAG" release-assets/*.zip release-assets/*.sha256 --clobber
+          gh release edit "$RELEASE_TAG" --draft=false

@@ -15,15 +15,16 @@ FILES = (
 )
 
 
-def build(destination):
+def build(destination, skill=SKILL):
+    skill = Path(skill)
     destination = Path(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for relative in sorted(FILES):
-            source = SKILL / relative
+            source = skill / relative
             if source.is_symlink() or not source.is_file():
                 raise ValueError("Missing regular skill file: " + relative)
-            entry = zipfile.ZipInfo(SKILL.name + "/" + relative, (1980, 1, 1, 0, 0, 0))
+            entry = zipfile.ZipInfo(skill.name + "/" + relative, (1980, 1, 1, 0, 0, 0))
             entry.create_system = 3
             entry.compress_type = zipfile.ZIP_DEFLATED
             entry.external_attr = (stat.S_IFREG | (0o755 if relative.endswith(".py") else 0o644)) << 16

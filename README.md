@@ -4,15 +4,27 @@ Find and unlock GOG achievements through a conversation with a local AI agent. T
 
 ## Install
 
-This is an [Agent Skills](https://agentskills.io/specification) repository. Copy `skills/gog-achievements` into your agent's skill directory. Keep the whole folder intact. For Codex, use `~/.agents/skills/gog-achievements` or a project `.agents/skills/gog-achievements` directory. The optional `agents/openai.yaml` adds Codex display metadata; the main workflow uses no vendor-specific tools.
-
-The GitHub repository is private. Authenticate with GitHub before cloning or using a skill installer that reads it. Do not put a GitHub token in the skill, a command argument, or chat.
+Install with the [Skills CLI](https://github.com/vercel-labs/skills), then choose your agent and installation scope:
 
 ```sh
-git clone git@github.com:opista/gog-achievements-skill.git
+npx skills add opista/gog-achievements-skill --skill gog-achievements
 ```
 
-Use your agent's skill installer with this repository and the path `skills/gog-achievements`, or copy that folder from the checkout. No marketplace submission or global installation is performed by cloning this repository.
+For a user-wide Codex installation:
+
+```sh
+npx skills add opista/gog-achievements-skill --skill gog-achievements --agent codex --global
+```
+
+The installer needs Node.js and npm. The skill and downloaded CLI do not. You can also download a ZIP from [Releases](https://github.com/opista/gog-achievements-skill/releases), or clone this repository over HTTPS:
+
+```sh
+git clone https://github.com/opista/gog-achievements-skill.git
+```
+
+For manual installation, copy the complete `skills/gog-achievements` folder into your agent's skill directory. In a release ZIP, that folder is named `gog-achievements`. For Codex, use `~/.agents/skills/gog-achievements` or a project `.agents/skills/gog-achievements` directory. Start a new chat after installation.
+
+This repository follows the [Agent Skills specification](https://agentskills.io/specification). The optional `agents/openai.yaml` adds Codex display metadata; the main workflow uses no vendor-specific tools. A directory listing or plugin-store installation is separate from installing this repository.
 
 ## Requirements
 
@@ -21,7 +33,13 @@ Use your agent's skill installer with this repository and the path `skills/gog-a
 - Network access to GitHub for setup and update checks, and to the CLI's GOG services for normal use.
 - A user who can complete local GOG sign-in. Windows sign-in also needs the Microsoft WebView2 Runtime.
 
-The CLI release includes its own runtime and native helper. Node, npm, and a compiler are not required. Hosted Linux agents cannot use the current CLI or native sign-in. They need a separate local connection, which this skill does not supply.
+The CLI release includes its own runtime and native helper. A compiler is not required. Hosted Linux agents cannot use the current CLI or native sign-in. They need a separate local connection, which this skill does not supply.
+
+## Test a fresh installation
+
+Move an existing manual skill installation to a backup directory outside every agent's skill directory, then run the install command above. Start a new chat and ask it to list achievements before trying an unlock. This checks public installation and skill discovery without changing achievements.
+
+Replacing the skill does not remove its downloaded CLI, preferences, queues, or GOG login. Keep those for an installation-only test. To also test the first CLI download, use the runtime helper's `--data-dir` option with a new directory outside the skill; an existing CLI on PATH may still be reused. Sign-in is separate and can reuse the credentials held by the CLI.
 
 ## Use
 
@@ -75,3 +93,18 @@ Tests use local fixtures and make no GOG requests. CI runs on Mac, Windows, and 
 `scripts/package.py` creates `dist/gog-achievements-skill.zip` with only the portable skill folder. Keep platform marketplace manifests separate when adding them. A shared skill format does not guarantee marketplace approval.
 
 To approve a CLI release, validate its command contract and native release packages, add all four published archive hashes, update `preferred_version`, and run the tests. Update `tests/evaluations.md` when a real request exposes a missing decision rule.
+
+## Releases
+
+This repository uses the same Release Please flow as the CLI and Electron repositories. Conventional Commits on `main` create or update a release PR with the version and changelog. Release Please updates `version.txt`, `.release-please-manifest.json`, and the skill's version together. Merge the checked release PR to start publication.
+
+The release starts as a draft. The workflow pins its existing tag to one commit, runs the fixture tests, validation, packaging, and native CLI probes on Mac, Windows, and Linux, and builds a versioned skill ZIP with a SHA-256 checksum. Linux runs package and helper checks; native probes run on Mac and Windows. Publication uses the verified Linux-built archive after all three jobs pass. It checks the tag again and publishes only the matching draft release.
+
+To retry a failed draft release, run the **Release** workflow with its existing version tag. Published releases cannot be replaced by that workflow. Local release checks are:
+
+```sh
+python3 scripts/release.py build --tag v0.1.3
+python3 scripts/release.py verify --tag v0.1.3
+```
+
+Replace the example tag with `v` followed by the version in `version.txt`.
