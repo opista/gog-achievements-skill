@@ -28,9 +28,8 @@ jobs:
       contents: read
     outputs:
       commit: ${{ steps.pin.outputs.commit }}
-      release-id: ${{ steps.pin.outputs.release-id }}
     steps:
-      - name: Pin the existing draft release tag
+      - name: Pin the existing version tag
         id: pin
         uses: actions/github-script@v8
         env:
@@ -41,16 +40,8 @@ jobs:
             if (!/^v\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(tag)) {
               throw new Error('Use an existing version tag, such as v0.1.3.');
             }
-            const releases = await github.paginate(github.rest.repos.listReleases, { ...context.repo, per_page: 100 });
-            const matches = releases.filter((release) => release.tag_name === tag);
-            if (matches.length !== 1) throw new Error('Use an existing draft release tag.');
-            const release = matches[0];
-            if (!Number.isSafeInteger(release.id) || release.id <= 0 || release.draft !== true) {
-              throw new Error('Only valid draft releases can be built for publication.');
-            }
             const { data: commit } = await github.rest.repos.getCommit({ ...context.repo, ref: 'refs/tags/' + tag });
             core.setOutput('commit', commit.sha);
-            core.setOutput('release-id', release.id);
 
   build:
     needs: prepare
@@ -88,14 +79,15 @@ jobs:
         env:
           RELEASE_TAG: ${{ inputs.tag }}
           RELEASE_COMMIT: ${{ needs.prepare.outputs.commit }}
-          RELEASE_ID: ${{ needs.prepare.outputs.release-id }}
         with:
           script: |
-            const releaseId = Number(process.env.RELEASE_ID);
-            if (!Number.isSafeInteger(releaseId) || releaseId <= 0) throw new Error('Invalid pinned release ID.');
-            const { data: release } = await github.rest.repos.getRelease({ ...context.repo, release_id: releaseId });
-            if (release.id !== releaseId || release.tag_name !== process.env.RELEASE_TAG || release.draft !== true) {
-              throw new Error('The draft release changed during this build.');
+            // Draft lookup stays in the publisher, which already has release write access.
+            const releases = await github.paginate(github.rest.repos.listReleases, { ...context.repo, per_page: 100 });
+            const matches = releases.filter((release) => release.tag_name === process.env.RELEASE_TAG);
+            if (matches.length !== 1) throw new Error('Use an existing draft release tag.');
+            const release = matches[0];
+            if (!Number.isSafeInteger(release.id) || release.id <= 0 || release.draft !== true) {
+              throw new Error('Only valid draft releases can be published.');
             }
             const { data: commit } = await github.rest.repos.getCommit({ ...context.repo, ref: 'refs/tags/' + process.env.RELEASE_TAG });
             if (commit.sha !== process.env.RELEASE_COMMIT) throw new Error('The release tag moved during this build.');
