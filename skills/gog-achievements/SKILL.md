@@ -3,7 +3,7 @@ name: gog-achievements
 description: Find, select, unlock, and re-lock GOG achievements through the GOG Achievements CLI. Use for requests to list achievements, find an achievement from a game or description, restore missing unlocks, choose unlock dates, or lock explicitly selected achievements. Requires a local Mac or Windows agent with shell access. Do not use for Steam achievements, game-save editing, statistics resets, or account-wide resets.
 license: MIT
 metadata:
-  version: "0.2.1" # x-release-please-version
+  version: "0.3.0" # x-release-please-version
   cli-release: "0.5.0"
 ---
 

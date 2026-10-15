@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/opista/gog-achievements-skill/compare/v0.2.1...v0.3.0) (2026-10-15)
+
+
+### Added
+
+* support selected locks and mixed achievement queues ([#3](https://github.com/opista/gog-achievements-skill/issues/3)) ([6850b04](https://github.com/opista/gog-achievements-skill/commit/6850b049cd60eb8dcd0af57a30f98c51d7aa99d3))
+
 ## [0.2.1](https://github.com/opista/gog-achievements-skill/compare/v0.2.0...v0.2.1) (2026-10-15)
 
 
