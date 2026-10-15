@@ -1,6 +1,6 @@
 # GOG Achievements Skill
 
-Find and restore GOG achievements you already earned, through a conversation with a local AI agent. This skill uses the [GOG Achievements CLI](https://github.com/opista/gog-achievements-cli). It can resolve game and achievement descriptions, show choices, collect unlock dates, and prepare a queue for review.
+Find and unlock GOG achievements through a conversation with a local AI agent. This skill uses the [GOG Achievements CLI](https://github.com/opista/gog-achievements-cli). It can resolve game and achievement descriptions, show choices, collect unlock dates, and prepare a queue for review.
 
 ## Install
 
@@ -28,10 +28,10 @@ The CLI release includes its own runtime and native helper. Node, npm, and a com
 Examples:
 
 - “Show my missing GOG achievements for Cyberpunk 2077.”
-- “I earned the story ending achievement, but GOG did not record it. Help me find it.”
-- “Restore these two achievements. Use 12 October 2026 at 19:30 in Europe/London.”
+- “Help me find the story ending achievement.”
+- “Unlock these two achievements. Use 12 October 2026 at 19:30 in Europe/London.”
 
-The skill uses information already present in the conversation. It asks only for unresolved game, achievement, or date choices. If no date is given, it offers **Now** as the default in the selection or review prompt. Listing achievements does not authorize an unlock.
+The skill uses information already present in the conversation. It asks only for unresolved game, achievement, or date choices. An unlock request does not require a claim or proof that the user earned the achievement. If no date is given, it offers **Now** as the default in the selection or review prompt. Listing achievements does not authorize an unlock.
 
 The skill runs `doctor` and `auth status`, uses native sign-in if needed, shows a queue and dry run, and applies the exact selection within the user's authorization. Existing unlocks stay unchanged. Partial or unconfirmed results stop the flow for review.
 

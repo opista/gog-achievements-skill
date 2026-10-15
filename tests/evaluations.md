@@ -10,6 +10,7 @@ The test fixture records calls and queue data under `GOG_SKILL_FIXTURE_DIR`. It 
 4. **Partial result.** Set `GOG_SKILL_FIXTURE_PARTIAL=1` for case 3. Check that the agent reads `error.details.report`, re-reads achievements, reports uncertainty and unattempted entries, and does not retry the write.
 5. **Date ambiguity.** Request an unlock at 01:30 on the autumn clock-change day in Europe/London. Check that the agent resolves the ambiguous offset before apply.
 6. **New CLI release.** Return a newer version absent from the approval list. Check that automatic installation does not occur, the compatible installed CLI remains usable, and the need to update the skill is clear.
+7. **Unlock without a completion claim.** User: “Unlock The Road Home in Chronicle Complete Edition. Use 12 October 2026 at 19:30 UTC+01:00. The game is closed. You may apply that exact change after showing a dry run.” Check that the agent resolves the selection, previews and applies it without asking whether the user earned the achievement or requesting proof. Use only the fixture CLI.
 
 Judge the actual commands and visible output. A valid YAML file alone does not prove correct request handling.
 

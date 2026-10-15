@@ -17,7 +17,7 @@ Selection display, using only actual returned entries:
 | --- | --- | --- | --- |
 | 1 | Returned name | Short returned description | Locked |
 
-Keep the mapping from choice to the actual string ID. Display a useful subset and offer more. A description can identify candidates; it does not prove the user earned one or authorize a write.
+Keep the mapping from choice to the actual string ID. Display a useful subset and offer more. A description can identify candidates; use the user's request to decide whether they want a list or an unlock. No statement or proof that they earned the achievement is required. Apply only within their authorization for the reviewed selection and dates.
 
 ## Queue commands
 
