@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.1](https://github.com/opista/gog-achievements-skill/compare/v0.3.0...v0.3.1) (2026-10-17)
+
+
+### Fixed
+
+* include documentation changes in patch releases ([#6](https://github.com/opista/gog-achievements-skill/issues/6)) ([a589cd6](https://github.com/opista/gog-achievements-skill/commit/a589cd6605a1f41603f1445f1b5bf486f13a6058))
+
+
+### Documentation
+
+* shorten achievement skill instructions ([#5](https://github.com/opista/gog-achievements-skill/issues/5)) ([c541a8e](https://github.com/opista/gog-achievements-skill/commit/c541a8e3bd3316ea627f91d5d8dfce4ffac1ae29))
+
 ## [0.3.0](https://github.com/opista/gog-achievements-skill/compare/v0.2.1...v0.3.0) (2026-10-15)
 
 
