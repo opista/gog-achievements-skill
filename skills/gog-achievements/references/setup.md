@@ -17,7 +17,7 @@ All commands accept `--data-dir PATH`. All except `config` accept `--cli PATH`. 
 
 Selection order is: explicit CLI path, an active managed copy, a compatible CLI on PATH, then a pinned managed download. An invalid explicit path fails rather than falling back to another installation. The helper runs only JSON help and public update checks. It never reads GOG credentials, signs in, or sends an achievement write.
 
-Success uses `{ "ok": true, "data": { ... } }`. Failure uses `{ "ok": false, "error": { "code": "...", "message": "..." } }`. Runtime errors exit 1. These are helper errors, not the CLI's exit codes.
+Success uses `{ "ok": true, "data": { ... } }`. The data includes `executable`, `version`, `managed`, `queue_directory`, and `update`. Failure uses `{ "ok": false, "error": { "code": "...", "message": "..." } }`. Runtime errors exit 1. These are helper errors, not the CLI's exit codes.
 
 The helper stores private files under:
 
@@ -27,6 +27,14 @@ The helper stores private files under:
 `runtime/<version>/<target>/` holds complete CLI packages. `active.json` selects the active version. `preferences.json` holds only the automatic-update preference. `update-check.json` caches public metadata. `queues/` holds user queue files. Credentials stay in the CLI's existing Mac Keychain or Windows DPAPI store and can be reused if the OS permits access.
 
 The skill-managed runtime stays outside the installed skill. A read-only skill directory is supported. Removing or updating the skill does not delete queues or credentials. Keep the complete CLI package intact, especially the private runtime and native helper in Intel Mac packages.
+
+## Sign-in
+
+Use the resolved CLI with `--json`. Inspect `doctor` data for local support, and `auth status` fields `authenticated`, `expired`, and `user_id` for sign-in. Exit 0 alone proves neither. A stored expired access token can refresh on the next GOG call; do not log out or replace an account without a request.
+
+When sign-in is required, run `auth login --json` and let the user complete the local native window. Keep the process alive with polling waits of at most 30 seconds. Never request passwords, tokens, login codes, or callback URLs in chat or expose raw native sign-in output. Native credential permission errors can require explicit local sign-in.
+
+Successful sign-in reports `authenticated: true`. Manual `--no-open` can return exit 0 with `authenticated: false` and `action_required`; that is not completed sign-in. Do not put codes or callback URLs in command arguments.
 
 ## Updates
 
