@@ -16,7 +16,8 @@
         { "type": "feat", "section": "Added" },
         { "type": "fix", "section": "Fixed" },
         { "type": "perf", "section": "Changed" },
-        { "type": "refactor", "section": "Changed" }
+        { "type": "refactor", "section": "Changed" },
+        { "type": "docs", "section": "Documentation", "hidden": false }
       ]
     }
   },
