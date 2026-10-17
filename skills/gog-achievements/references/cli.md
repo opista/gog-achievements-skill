@@ -1,8 +1,10 @@
 # CLI workflow reference
 
-Use the approved CLI's `--help --json` for the installed contract. The source documentation is [CLI reference at v0.5.0](https://github.com/opista/gog-achievements-cli/blob/v0.5.0/docs/cli-reference.md). All calls below also need `--json`. Use “ready to unlock” or “ready to lock” for a successful dry run in normal chat. Reserve “unlocked” and “locked” for confirmed states.
+Use the approved CLI's `--help --json` for the installed contract. The source documentation is [CLI reference at v0.5.0](https://github.com/opista/gog-achievements-cli/blob/v0.5.0/docs/cli-reference.md). In examples, `CLI` means the resolved absolute executable path. All calls need `--json`.
 
-Both `queue create` and `queue add` must declare `action` in JSON help before preparing locks or mixed queues. The runtime rejects v0.5.0 packages that lack either option. Approved v0.4.0 remains usable for reads and unlock-only queues; omit `--action` on that version. See [setup.md](setup.md#updates) before updating an older managed CLI.
+## Compatibility
+
+Before preparing locks or mixed queues, check that both `queue create` and `queue add` declare `action` in JSON help. CLI v0.5.0 supports both; the runtime rejects v0.5.0 packages that lack either option. Approved v0.4.0 supports reads and unlocks only; omit `--action` on that version. If action options are missing, explain the required update and stop before preparing locks. Follow [updates](setup.md#updates) within the user's update authorization; never replace the CLI during a reviewed batch.
 
 ## Responses and selection
 
@@ -10,12 +12,10 @@ Success: `{ "ok": true, "data": ... }`. Failure: `{ "ok": false, "error": { "cod
 
 - `games list --search TEXT`: `data.user_id`, `data.games[]` with string `id` and `title`. Search is not an achievement filter.
 - `achievements list --game GAME_ID`: `data.user_id`, `data.game`, `data.achievements[]`. Each entry has string `id`, `key`, `name`, `description`, boolean `hidden`, boolean `unlocked`, and `unlocked_at` (timestamp or null). Use the explicit state and date together. A null date is never a valid requested unlock date or, by itself, proof of a successful lock.
-- `auth status`: inspect `authenticated`, `expired`, and `user_id`. A stored expired access token can refresh on the next GOG command. Native credential permission errors can require explicit local sign-in.
-- `auth login`: human completes the native window; successful JSON reports `authenticated: true`. Manual `--no-open` can return exit 0 with `authenticated: false` and `action_required`; that is not a completed sign-in. Do not pass callback URLs or codes through chat or command arguments.
 
 ## Achievement-list display
 
-Use this format for all achievement lists, including read-only follow-ups, unless the user requests another format. Populate rows only from returned entries:
+Use numbered Markdown tables for all achievement lists, including search matches, read-only follow-ups, and requested hidden entries. Honor explicit requests for another format. Populate rows only from returned entries:
 
 **Game title — 3 locked achievements: 2 visible, 1 hidden.**
 
@@ -24,9 +24,11 @@ Use this format for all achievement lists, including read-only follow-ups, unles
 | 1 | **Returned name** | Short returned description | Locked |
 | 2 | **Another returned name** | Short returned description | Locked |
 
-**1 hidden achievement** is omitted to avoid spoilers. Offer to show its name and requirement. When the user requests it, show it in the same table format with the next choice number. An explicit request for one hidden entry does not permit revealing all hidden entries.
+Use bold names, brief returned requirements, and **Locked** or **Unlocked** status. If no description is returned, use an em dash. Never invent a requirement. Escape pipes and collapse line breaks in cells. Add unlock dates or results when useful for a review or result.
 
-Counts must match the returned, filtered entries and any withheld hidden entries. For pages, state the range and total, and continue the numbering; do not reduce an ordinary list to a few sample rows. Keep the mapping from choice to the actual string ID. A description can identify candidates; use the user's request to decide whether they want a list, unlock, or lock. No statement or proof that they earned the achievement is required for an unlock. Apply only within their authorization for the reviewed selection, actions, and dates.
+Lead with the game and matching count. Show all visible matches that fit on one page; for large lists, use pages of about 20 rows, state the shown range and total, and offer the next page. Do not silently omit matches. Keep choice numbers stable across pages and follow-ups, mapped to their string IDs; hide raw IDs unless requested.
+
+Report withheld hidden entries as a count and offer to reveal them. Reveal names and requirements only when requested or clearly identified by the user; a broad description such as “the ending achievement” does not permit hidden names when several matches remain. Do not withhold information needed for an explicit request. Append requested hidden entries with new choice numbers. Permission to show one entry does not permit showing all hidden entries. All counts must match the filtered data and withheld entries.
 
 ## Queue commands
 
@@ -44,16 +46,20 @@ For a lock-only queue, use `queue create --game GAME_ID --file QUEUE_PATH --achi
 
 Queue files belong to one user and game, use schema version 1, and hold at most 1,000 unique achievements. An ID cannot appear twice with different actions. Let the CLI capture current achievement keys and validate the file. Unlock entries have `unlocked_at` and optional `action: "unlock"`; an omitted action means unlock. Lock entries have `action: "lock"` and the original non-null `previous_unlocked_at` captured exactly from GOG. They omit `unlocked_at`. Never pass a null unlock date or add a date flag to a lock.
 
-Always set explicit RFC 3339 dates with a time zone, at or before the actual current time. Dates are stored at UTC second precision. For Now, generate once when preparing the queue:
+`queue show` returns the queue in `data`, including `user_id`, `game`, and `items[]` with `achievement_id`, `name`, action, and the relevant date field above. Apply returns a report in `data`, or in `error.details.report` on exit 6. A report has `dry_run`, `complete`, `user_id`, `game`, and `results[]`.
+
+## Unlock dates
+
+Always pass `--unlocked-at` explicitly for unlocks, with an RFC 3339 timestamp and explicit offset, at or before the actual current time. Allow one date for several achievements or separate dates for each. Never pass a date with `--action lock`.
+
+For Now, read the actual clock when preparing the queue and freeze one UTC timestamp at second precision for the reviewed batch. Do not use the date in the prompt. For example:
 
 ```python
 from datetime import datetime, timezone
 timestamp = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 ```
 
-The default for an omitted date is ten seconds before the CLI operation, not the skill's explicit Now. A supplied ambiguous local date needs a time zone or UTC offset. If GOG returns another date, report that difference; do not claim the requested historical date was retained.
-
-`queue show` returns the queue in `data`, including `user_id`, `game`, and `items[]` with `achievement_id`, `name`, action, and the relevant date field above. Apply returns a report in `data`, or in `error.details.report` on exit 6. A report has `dry_run`, `complete`, `user_id`, `game`, and `results[]`.
+The CLI's omitted-date default is ten seconds before the operation. For custom dates, reuse the user's date and zone or established context; ask if the exact time, zone, or daylight-saving offset is ambiguous. Do not infer a historical offset from the machine's current offset. Dates are stored at UTC second precision. Show the local date, time zone, and UTC equivalent in the review. Do not promise that GOG will accept or retain a historical date; report any returned date difference.
 
 ## Apply results
 
@@ -77,4 +83,4 @@ A failure, uncertainty, or date mismatch stops later writes. A lost write respon
 
 Exit codes: 0 command completed; 2 input invalid; 3 login required/rejected; 4 network/API failure; 5 account, ownership, game, or lock conflict; 6 incomplete apply; 7 native credential/browser/process failure. For exit 6, inspect the report, read live state, and await review before retrying. A retry cannot correct a date on an already unlocked entry.
 
-Keep the game closed during apply to avoid conflicting updates from its next GOG sync. GOG has no atomic compare-and-set operation. Explain that practical reason when asking the user to save and close it. Do not require a specific reply word or another confirmation if closure is already known; a reliable read-only process check can establish that the game has stopped. Do not run concurrent apply commands or remove another process's queue lock. Do not perform statistics or account-wide resets, implicit locks, or a lock/unlock cycle to edit an existing unlock date.
+GOG has no atomic compare-and-set operation. Keep the game closed during apply to avoid conflicting updates from its next GOG sync. Do not run concurrent apply commands or remove another process's queue lock.
