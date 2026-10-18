@@ -63,6 +63,8 @@ For a running game, it explains the next step directly: “Save and close Cyberp
 
 ## Runtime and updates
 
+CSV export uses `achievements export` when the installed CLI declares support. It writes a new UTF-8 file, keeps exact ID digits and UTC dates, and can combine search and status filters. The current approved CLI pins do not include export; this change leaves those pins unchanged. The skill checks support and explains the missing capability. See [CSV export](skills/gog-achievements/references/cli.md#csv-export).
+
 From an installed skill folder:
 
 ```sh

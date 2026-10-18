@@ -30,6 +30,21 @@ Lead with the game and matching count. Show all visible matches that fit on one 
 
 Report withheld hidden entries as a count and offer to reveal them. Reveal names and requirements only when requested or clearly identified by the user; a broad description such as “the ending achievement” does not permit hidden names when several matches remain. Do not withhold information needed for an explicit request. Append requested hidden entries with new choice numbers. Permission to show one entry does not permit showing all hidden entries. All counts must match the filtered data and withheld entries.
 
+## CSV export
+
+Inspect `CLI --help --json` for `achievements export` and its `game`, `file`, `search`, and `status` flags before use. Current approved CLI releases v0.4.0 and v0.5.0 lack this command. If absent, explain that export needs a CLI release with this feature. Do not change release pins, replace the CLI, or build CSV with a separate script as a fallback.
+
+Resolve the requested game and destination path. Reuse supplied search text and status; omit filters when the user asks for all achievements. Ask only when the destination or selection is unclear. Tell the user that CSV includes hidden achievement names and descriptions. An explicit export request permits those fields in the file; keep chat details within the user's reveal request.
+
+```sh
+CLI achievements export --game GAME_ID --file CSV_PATH --json
+CLI achievements export --game GAME_ID --file CSV_PATH --search TEXT --status locked --json
+```
+
+`--status` accepts `all`, `locked`, or `unlocked`. Search matches names and descriptions without case sensitivity and combines with status. The CLI uses the same selection as `achievements list`. It writes UTF-8 CSV with columns `game_id,game_title,achievement_id,name,description,hidden,status,unlocked_at`. IDs retain their exact digits; unlocked dates use UTC and locked dates are empty. Spreadsheet applications must import ID columns as text to retain all digits.
+
+CSV goes to the file, never stdout. Parse the success envelope and report `data.path` and `data.count`. An empty selection still writes the header with count 0. `EXPORT_EXISTS` means no replacement was made: choose another path within the user's request, or ask for a new name. Do not delete the existing file or claim success after a file or network error. No queue, unlock date, game-close step, dry run, or achievement apply is needed for export.
+
 ## Queue commands
 
 Use a new UUID filename under `data.queue_directory`. For example, generate the basename with Python `uuid.uuid4()` and a `.json` suffix. Do not create the file before `queue create`; that command refuses to overwrite an existing file.
