@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/opista/gog-achievements-skill/compare/v0.3.1...v0.4.0) (2026-10-18)
+
+
+### Added
+
+* guide CLI-backed CSV achievement exports ([#8](https://github.com/opista/gog-achievements-skill/issues/8)) ([8602e49](https://github.com/opista/gog-achievements-skill/commit/8602e496ad392bc4099d615962714d0910897c5c))
+
 ## [0.3.1](https://github.com/opista/gog-achievements-skill/compare/v0.3.0...v0.3.1) (2026-10-17)
 
 
