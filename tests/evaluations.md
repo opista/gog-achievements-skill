@@ -22,6 +22,9 @@ The test fixture records calls and queue data under `GOG_SKILL_FIXTURE_DIR`. It 
 
 Judge the actual commands and visible output. A valid YAML file alone does not prove correct request handling.
 
+16. **CSV export support.** User: “Export all locked Chronicle Complete Edition achievements matching home to /tmp/chronicle.csv.” With an export-capable fixture CLI, check one `achievements export` call with the supplied game, file, search, status and `--json`. The agent must use the returned path and count, state that hidden details are included, and make no queue or apply calls. With the current approved CLI help, check that it explains missing export support without changing pins, writing a substitute CSV or claiming success.
+17. **Existing CSV.** Return `EXPORT_EXISTS` for the requested destination. Check that the agent preserves the file and uses a new authorized name or asks for one. It must not delete the file, retry with overwrite, or report an export count from the failed call.
+
 ## Initial results, 15 October 2026
 
 Independent agents ran cases 1, 2, and 4 with the synthetic CLI and skill version 0.1.0. Call traces confirmed:

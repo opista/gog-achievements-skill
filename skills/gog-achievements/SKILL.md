@@ -1,6 +1,6 @@
 ---
 name: gog-achievements
-description: Find, select, unlock, and re-lock GOG achievements through the GOG Achievements CLI. Use for requests to list achievements, find an achievement from a game or description, restore missing unlocks, choose unlock dates, or lock explicitly selected achievements. Requires a local Mac or Windows agent with shell access. Do not use for Steam achievements, game-save editing, statistics resets, or account-wide resets.
+description: Find, select, export, unlock, and re-lock GOG achievements through the GOG Achievements CLI. Use for requests to list achievements, export CSV, find an achievement from a game or description, restore missing unlocks, choose unlock dates, or lock explicitly selected achievements. Requires a local Mac or Windows agent with shell access. Do not use for Steam achievements, game-save editing, statistics resets, or account-wide resets.
 license: MIT
 metadata:
   version: "0.3.1" # x-release-please-version
@@ -31,13 +31,17 @@ Run `doctor --json` and `auth status --json`; inspect their data, not just exit 
 
 ## Resolve game and achievement choices
 
-Use `games list --search TEXT --json`, then `achievements list --game GAME_ID --json`. Verify supplied IDs and names against live data. Filter achievements locally; there is no achievement search flag. For ambiguous games, show numbered titles and ask; never guess an edition. For ambiguous achievements, show candidates and accept one or several choices.
+Use `games list --search TEXT --json`, then `achievements list --game GAME_ID --json`. Verify supplied IDs and names against live data. Use achievement filters only if the installed JSON help declares them; otherwise filter returned entries locally. For ambiguous games, show numbered titles and ask; never guess an edition. For ambiguous achievements, show candidates and accept one or several choices.
 
 Use numbered tables with names, requirements, and status. Follow [achievement-list display](references/cli.md#achievement-list-display) for complete lists, stable numbering, and hidden entries. Conceal hidden names and requirements unless requested or clearly identified.
 
 - For missing achievements, focus on locked entries. Preserve existing unlocks and dates unless explicitly selected for locking. Explain existing unlocks; do not promise a date change or use a lock/unlock cycle to edit one.
 - For locks, select currently unlocked entries; explain and skip already-locked entries. Locks remove the unlock date. “Lock all” selects only current unlocks in the named game. Never extend it to other games, statistics, or account-wide resets.
 - Queue only requested actions. An unlock needs no completion claim or proof. For a list-only request, finish with the list: no dates, queue, or apply.
+
+## Export achievements
+
+For a CSV request, follow [CSV export](references/cli.md#csv-export). The CLI selects the rows and writes the file. Check installed command support first; the currently pinned releases do not include export. Keep release pins unchanged and explain missing support without claiming a file was saved. Export makes no achievement changes and needs no queue or apply step.
 
 ## Resolve unlock dates
 
